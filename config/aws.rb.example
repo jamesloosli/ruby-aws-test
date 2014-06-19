@@ -1,0 +1,8 @@
+# Rename this file to aws.rb
+# Add account settings and API keys here.
+#
+# These are the required settings;
+AWS.config({
+  :access_key_id => '...',
+  :secret_access_key =>'...',
+})
