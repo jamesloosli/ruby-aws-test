@@ -47,51 +47,44 @@ def parse_options
   return options
 end
 
+def create_new_bucket(s3)
+  u = UUID.new
+  bucket_name = "#{u.generate}"
+  bucket = s3.buckets.create(bucket_name)
+  return bucket
+end
+
+def upload_file_to_bucket(file,bucket)
+  u = UUID.new
+  obj_key = "#{u.generate}"
+  obj = bucket.objects[obj_key]
+  obj.write(file)
+  return obj_key
+end
+
+def gen_link_to_file(key,bucket,time)
+  obj = bucket.objects[key]
+  link = obj.url_for(:read, :expires => time)
+  return link
+end
+
 if __FILE__ == $0
-  #Do work.
-  begin
-    options = parse_options
+  options = parse_options
+
+  puts "Starting connection" if options[:verbose]
+  s3 = AWS::S3.new
   
-    puts "Starting connection" if options[:verbose]
-    s3 = AWS::S3.new
-    uuid = UUID.new
-    
-    puts "Checking for available bucket" if options[:verbose]
-    if s3.buckets.count == 0
-      puts "Creating bucket" if options[:verbose]
-      bucket_name = "#{uuid.generate}"
-      bucket = s3.buckets.create(bucket_name)
-      if bucket.exists?
-        puts "Bucket #{bucket.name}} created" if options[:verbose]
-      else 
-        raise "Couldn't create bucket"
-      end
-    else
-      arr = s3.buckets.collect(&:name)
-      #Just use the first bucket.
-      bucket = s3.buckets[arr[0]]
-      if bucket.exists? 
-        puts "Using existing bucket with id #{arr[0]}" if options[:verbose]
-      else
-        raise "Couldn't use the bucket I found. Doesn't Exist. You should never see this message. Abandon ship."
-      end
-    end
-    
-    puts "Opening file for upload" if options[:verbose]
-    file = File.open(options[:file],'rb') or raise "Couldn't open file."
+  puts "Creating bucket" if options[:verbose]
+  bucket = create_new_bucket(s3)
 
-    puts "Uploading file" if options[:verbose]
-    obj_key = "#{uuid.generate}"
-    obj = bucket.objects[obj_key]
-    obj.write(file) or raise "Couldn't write to object"
-    #return link 
+  puts "Opening file for upload" if options[:verbose]
+  file = File.open(options[:file],'rb') 
 
-    puts "Generating link, valid for 24h" if options[:verbose]
-    link = obj.url_for(:read, :expires => 86400) or raise "Couldn't create link"
+  puts "Uploading file" if options[:verbose]
+  new_obj_key = upload_file_to_bucket(file,bucket)
 
-    puts "Link to file: #{link}" 
+  puts "Generating link, valid for 24h" if options[:verbose]
+  link = gen_link_to_file(new_obj_key,bucket,86400)
 
-  rescue Exception => msg
-    puts msg
-  end
+  puts "Link to file: #{link}" 
 end
