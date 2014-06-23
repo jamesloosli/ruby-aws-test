@@ -1,10 +1,7 @@
 #!/usr/bin/ruby
 
-#Hack because OSX
-$: << '.'
-
 require 'aws-sdk'
-require 'config/aws'
+require_relative 'config/aws'
 
 require 'optparse'
 require 'optparse/time'
